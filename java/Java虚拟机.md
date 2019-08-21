@@ -261,7 +261,9 @@
 
 深入理解java虚拟机第四章 以下均可通过  command -h查看命令格式
 
-主要工具及调用事例
+主要工具及调用方法参数信息
+
+##### 命令行工具
 
 1. jsp虚拟机进程状况工具
 
@@ -359,7 +361,144 @@
    | -finalizerinfo        | 打印等待完成的对象信息                                       |
    | -dump:< dump-options> | 生成java堆转储快照，dump-options包括：live :是否只打印活的对象；format=b：二进制形式；file=< file> 生成堆到文件 |
    | -F                    | 强制生成堆快照，此状态下live参数不可用                       |
-   | -J< flag>             |                                                              |
+   | -J< flag>             | 将< flag >直接传递到运行时系统中                             |
    |                       |                                                              |
 
-   
+
+
+5. jhat：虚拟机堆转储快照分析工具
+
+   > jmap与jhat搭配使用分析jmap生成的堆转储快照；
+   >
+   > jhat内置微型http/html服务器，生成dump文件的分析结果后可以在路蓝旗中查看；
+   >
+   > 命令：jhat [-stack < bool>]  [-refs < bool>]  [-port < port>]  [-baseline < file>]  [-debug < int>]  [-version ]  [-h|-help]  < file>
+
+   | option            | 作用                                                         |
+   | ----------------- | ------------------------------------------------------------ |
+   | -J< flag>         | 将flag参数作用于运行时系统中                                 |
+   | -stack false      | 关闭跟踪对象分配调用堆栈                                     |
+   | -ref false        | 关闭对对象引用的跟踪                                         |
+   | -port < port>     | 修改http server的端口信息                                    |
+   | -exclude < file>  | 指定一个文件，该文件列出应从ReachableFrom查询中排除的数据成员 |
+   | -baseline < file> | 指定基线对象转储。具有相同ID和相同类的两个堆转储中的对象将标记为不是“新的”。 |
+   | -debug < int>     | 设置debug 等级 0：不输出debug内容；1：调试hprof文件分析；2：调试hprof文件分析，没有服务器 |
+   | -version          | 版本信息                                                     |
+   | < file>           | 要分析的文件地址                                             |
+
+
+
+6. jstack：java堆栈跟踪工具
+
+   > 用于生成当前虚拟机的当前时刻的线程快照，线程快照就是当前虚拟机内每一条线程正在执行的方法堆栈的集合，用于定位线程出现长时间停顿的原因（死锁、死循环、请求外部资源导致的长时间等待等），通过jstack可以看到线程调用堆栈，从而可以回到线程在做什么;
+   >
+   > 命令用法：
+   >
+   > ​		jstack [-l] < pid>：连接正在运行中的进程
+   >
+   > ​		jstack -F [-m] [-l] < pid>：连接挂起的进程
+   >
+   > ​		jstack [-m] [-l] < executable> < pid>：连接核心文件
+   >
+   > ​		jstack [-m] [-l] [server_id@] < remote server IP or hostname>：连接远程调试服务
+
+   | options | 作用                                         |
+   | ------- | -------------------------------------------- |
+   | -F      | 强制线程转储，当jstack无反应，进程挂起时使用 |
+   | -m      | 同时输出java和native框架                     |
+   | -l      | 长清单，打印有关锁的其他信息                 |
+
+
+
+##### 可视化工具
+
+1. JConsole
+
+   > 基于JMX的可视化监视和管理工具
+
+该部分内容基于深入理解java虚拟机4.3，暂时跳过
+
+
+
+
+
+#### 虚拟机调优案例分析与实战
+
+暂时跳过
+
+
+
+
+
+#### 类文件结构
+
+所谓平台无关性与语言无关性，其基础为虚拟机与字节码存储格式，即将不同语言通过各自的编译器编译为同种结构的字节码文件，从而实现在同一虚拟机平台上运行
+
+1. class文件的结构
+
+   > class文件是一组以8位字节为基础单位的二进制流，各个数据项目严格按照顺序紧凑地排列在class文件中，中间没有任何分割符。若需要存储8位字节以上的空间数据项时，按照高位在前的顺序拆分为若干8位字节进行存储；(8为字节值得应该是一个字节占8位吧！！！)
+   >
+   > class的存储格式为伪结构体，包含两种数据类型：**无符号数和表**；
+   >
+   > **无符号数**属于基本数据类型，以u1、u2、u4、u8分别代表1个字节、2个字节、4个字节和8个字节的无符号数，无符号数可以用来描述数字、索引应用、数量值、或者按照UTF-8编码构成的字符串值；
+   >
+   > **表**是由多个无符号数或其他表作为数据项的符合数据类型，所有的表习惯性以“_info”结尾。表用于描述有层次关系的复合结构的数据，整个class文件本质上就是一个表
+
+   class文件由如下所示数据项组成：
+
+   | 类型           | 名称                | 数量                |
+   | -------------- | ------------------- | ------------------- |
+   | u4             | magic               | 1                   |
+   | u2             | minor_version       | 1                   |
+   | u2             | major_version       | 1                   |
+   | u2             | constant_pool_count | 1                   |
+   | cp_inf         | constant_pool       | constant_pool_count |
+   | u2             | access_flags        | 1                   |
+   | u2             | this_class          | 1                   |
+   | u2             | super_class         | 1                   |
+   | u2             | interfaces_count    | 1                   |
+   | u2             | interfaces          | interfaces_count    |
+   | u2             | fields_count        | 1                   |
+   | field_info     | fields              | fields_count        |
+   | u2             | methods_count       | 1                   |
+   | method_info    | methods             | methods_count       |
+   | u2             | attributes_count    | 1                   |
+   | attribute_info | attributes          | attributes_count    |
+
+   > 配合F:\JetBrains project\javaBaseTest\target\classes\com\yuan\JVMTest\TestClass.class文件查看
+
+   - magic
+
+     >class文件的头4个文件成为魔数，它的唯一作用是确定该文件是否是一个可以被虚拟机接受的Class文件（java class文件魔数为0xCAFEBABE）。很多其他的文件存储标准中都是用了魔数进行身份识别，譬如图片格式，如gif或jpeg等。
+
+   - minor version&major version  
+
+     >第二个和第三参数共四个字节存储Class文件的版本信息：第二个参数是此版本号、第三个参数是主版本号
+
+   - 常量池信息
+
+     > 常量池入口是一个两个字节的常量池容量计数器constant_pool_count，存放常量池内容量计数值；
+     >
+     > cp_info为常量池，其内存放两大类常量：**字面量**（Literal）和符号引用(Symbolic References)。字面量接近java语言的常量概念，如字符串常量、被声明为final的常量值等；**符号引用**是编译原理方面的概念，包括：类和接口的全限定名（fully  qualified Name）、字段的名称和描述（descriptor）、方法的名称和描述符;
+     >
+     > **注意：**java编译时没有“连接”这一步骤，而是虚拟机加载class文件是动态连接，所以class文件中不会保存各个方法和字段的最终布局信息，因此这些字段和方法的符号引用不经过转换无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应符号应用，再在类创建时或运行时解析并翻译到具体的内存地址之中
+
+   - 常量池的项目结构
+
+     > 常量池中的每一项常量都是一个表，共有11中结构各不相同的表结构数据，这些表的第一位都是一个u1类型的标志位（取值1，3-12），表示该常量属于那种常量类型。一下所有表各自均有自己的结构
+
+     | 类型                             | 标志 | 描述                     |
+     | -------------------------------- | ---- | ------------------------ |
+     | CONSTANT_Utf8_info               | 1    | UTF-8编码字符串          |
+     | CONSTANT_Integer_info            | 3    | 整型字面量               |
+     | CONSTANT_Float_info              | 4    | 浮点型字面量             |
+     | CONSTANT_Long_info               | 5    | 长整型字面量             |
+     | CONSTANT_Double_info             | 6    | double型字面量           |
+     | CONSTANT_Class_info              | 7    | 类或接口的符号引用       |
+     | CONSTANT_String_info             | 8    | 字符串字面量             |
+     | CONSTANT_Fieldref_info           | 9    | 字段符号引用             |
+     | CONSTANT_Methodref_info          | 10   | 类中方法符号引用         |
+     | CONSTANT_InterfaceMethodref_info | 11   | 接口中的方法符号引用     |
+     | CONSTANT_NameAndType_info        | 12   | 字段或方法的部分符号引用 |
+
+     
