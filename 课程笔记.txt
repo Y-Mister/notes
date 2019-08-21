@@ -1,0 +1,64 @@
+web.xml中：
+	<servlet-mapping>的作用是通过<url-pattern>指定的动作类型来调用<servlet-name>指明的servlet
+
+在具体的页面中，例如在欢迎页index.jsp中，出现了任何<servlet-mapping>中<url-pattern>指定的动作类型，都需要经过web.xml中确定的servlet中经过并获得处理结果
+
+mybatis中dao接口的实现类就是mapper配置文件，dao实现函数在mapper文件中以id对应
+
+jsp-->action-->serviceProxy-->serviceImpl-->dao->databases
+
+
+快捷键：ctrl+2+L直接补充函数调用语句返回值；
+	ctrl+E+enter代码补全
+	ctrl+shift+o导入包
+	
+
+
+方法名称的命名规范：
+CRUD（增删改查）
+dao select*** delete*** update*** insert***
+
+service find*** remove*** modify*** add***
+
+WEB-INF安全目录无法直接访问，页面显示需要写成struts请求
+
+
+将.do请求直接赋值给iframe的src属性：iframe通过该src向服务器请求页面，struts1的servlet捕捉到该.do结尾的请求，从struts-config.xml中找到对应的action并做反应后将相应的值或动作返回给iframe，iframe本质上就是一个浏览器中的浏览器
+
+struts的所有的请求与以及java的action均发生在浏览器向服务器做请求的时候
+
+
+分页：pageHelper包通过startPage拦截器拼接limit语句至mapper的sql语句中实现对所有记录进行分页显示
+
+
+
+servlet：获取所有数据后返回页面；
+ajax：直接跳转页面，再在页面中有ajax发出数据请求，继而布局整个页面
+
+
+通过Ajax请求输出商品到页面并且分页的整个流程：
+	      通过url请求向服务器端请求必要页面信息加载初始页面（Index_ajax.jsp）
+	----->当index_ajax页面加载完毕--->调用loadData函数
+	——->lodaData函数中根据出入的页面信息，进行页面信息初始化
+	----->调用Ajax中的url.do请求请求信息
+	——->请求成功，回调函数取得所需信息Json字符串
+	----->将Json字符串拆解开，获取各类信息
+	----->通过模板引擎输出商品信息片段页面
+	----->通过页面初始化函数实现分页条
+	----->整个页面加载完成（之后每通过分页条查看不同页面商品时都需要尽心Ajax请求）
+
+
+	
+java类中通过request.setAttribute("companyId", companyId);设置的值在jsp页面中通过el表达式${companyId}可以直接取出，
+但是若果使用jsp的getAttribute获得的将是一个对象，
+String tttt=request.getAttribute("companyId")是不可行的，可将该对象toString后再赋值，
+例如String tttt=request.getAttribute("companyId").toString()，
+继而通过< %=tttt  % >的语法取出或是赋值给js变量，将jsp变量赋值给js变量：
+let ttttt="${companyId}" 也可以 let tttt="< %=tttt%>"
+
+验证价格正则：^(([1-9]{1}\\d*)|([0]{1}))(\\.(\\d){0,2})?$
+
+
+
+待完善：ngix集群、radis缓存、单点登录
+
