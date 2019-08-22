@@ -430,7 +430,7 @@
 
 
 
-#### 类文件结构
+#### ***类文件结构
 
 所谓平台无关性与语言无关性，其基础为虚拟机与字节码存储格式，即将不同语言通过各自的编译器编译为同种结构的字节码文件，从而实现在同一虚拟机平台上运行
 
@@ -479,7 +479,7 @@
 
      > 常量池入口是一个两个字节的常量池容量计数器constant_pool_count，存放常量池内容量计数值；
      >
-     > cp_info为常量池，其内存放两大类常量：**字面量**（Literal）和符号引用(Symbolic References)。字面量接近java语言的常量概念，如字符串常量、被声明为final的常量值等；**符号引用**是编译原理方面的概念，包括：类和接口的全限定名（fully  qualified Name）、字段的名称和描述（descriptor）、方法的名称和描述符;
+     > cp_info为常量池，其内存放两大类常量：**字面量**（Literal）和符号引用(Symbolic References)。字面量接近java语言的常量概念，如字符串常量、被声明为final的常量值等；**符号引用**是编译原理方面的概念，包括：**类和接口的全限定名**（fully  qualified Name）、**字段的名称和描述**（descriptor）、**方法的名称和描述符**;（**关于全限定名、描述符等特殊字符串，将在后面介绍**）
      >
      > **注意：**java编译时没有“连接”这一步骤，而是虚拟机加载class文件是动态连接，所以class文件中不会保存各个方法和字段的最终布局信息，因此这些字段和方法的符号引用不经过转换无法直接被虚拟机使用。当虚拟机运行时，需要从常量池获得对应符号应用，再在类创建时或运行时解析并翻译到具体的内存地址之中
 
@@ -500,5 +500,160 @@
      | CONSTANT_Methodref_info          | 10   | 类中方法符号引用         |
      | CONSTANT_InterfaceMethodref_info | 11   | 接口中的方法符号引用     |
      | CONSTANT_NameAndType_info        | 12   | 字段或方法的部分符号引用 |
-
+| CONSTANT_MethodHandle_info       | 15   | 表示方法句柄             |
+     | CONSTANT_MethodType_info         | 16   | 标识方法类型             |
+     | CONSTANT_InvokeDynamic_info      | 18   | 表示一个动态方法调用点   |
      
+     关于表结构，以下为两个实例
+     
+     **CONSTANT_Class_info**型常量的结构：
+     
+     | 类型 | 名称       | 数量 |
+     | ---- | ---------- | ---- |
+     | u1   | tag        | 1    |
+     | u2   | name_index | 1    |
+     
+     > tag为标志位，指明该常量类型；name_index为索引值，它指向常量池中的一个CONSTANT_Class_info类型的常量，此常量代表了这个类（或接口）的全限定名，该name_index值指代的是CONSTANT_Class_info在常量池中的位置，如name_index=20,则常量池中第20个常量的值即为该CONSTANT_Class_info的类（或接口全限定名）；
+     
+     **CONSTANT_Utf8_info**型常量的结构：
+     
+     | 类型 | 名称   | 数量   |
+     | ---- | ------ | ------ |
+     | u1   | tag    | 1      |
+     | u2   | length | 1      |
+     | u1   | bytes  | length |
+     
+     > length值说明了该utf-8编码的字符串的长度是多少个字节，bytes是length个字节的连续数据是一个采用UTF-8 缩略编码表示的字符串（缩略编码：从‘\u0001’ 到 '\u007f' 间的字符采用一个字节描述；从‘\u0080’ 到 '\u07ff' 间的字符采用两个字节描述；从‘\u0800’ 到 '\uffff' 间的字符采用普通编码规则用三个字节描述）；
+     >
+     > **注意：**Class文件中方法、字段都需要引用CONSTANT_Utf8_info型常量来描述名称，所以 CONSTANT_Utf8_info 型常量的最大长度就是 java 中方法和字段名的最大长度，而此最大长度就是length的最大值（两个字节65535，该值指代的是字节长度），所以 java 程序中不能定义超过64KB=65536个字节长度的英文字符变量或方法名，否则将无法编译
+     
+     **数值**类型常量的结构：
+     
+     > 其中Integer、Float、Long、Double结构一致，含义略有不同
+     
+     | 类型 | 名称  | 数量 |
+     | ---- | ----- | ---- |
+     | u1   | tag   | 1    |
+     | u4   | bytes | 1    |
+     
+     > tag:标志位；
+     >
+     > bytes：
+     >
+     > ​	Integer：按照高位在前存储的int值
+     >
+     > ​	Float：按照高位在前存储的float值
+     >
+     > ​	Long：按照高位在前存储的long值
+     >
+     > ​	Double：按照高位在前存储的double值
+     
+     **CONSTANT_String_info**型常量结构：
+     
+     | 类型 | 名称  | 数量 |
+     | ---- | ----- | ---- |
+     | u1   | tag   | 1    |
+     | u2   | index | 1    |
+     
+     > tag：标志位
+     >
+     > index：指向字符串字面量的索引，应该也是指向一个CONSTANT_Utf8_info型常量位置
+     
+     **CONSTANT_Fieldref_info**型常量结构：
+     
+     | 类型 | 名称   | 数量 |
+     | ---- | ------ | ---- |
+     | u1   | tag    | 1    |
+     | u2   | index1 | 1    |
+     | u2   | index2 | 1    |
+     
+     > tag：标志位
+     >
+     > index1：指向声明字段的类或接口描述符CONSTANT_Class_info的索引项
+     >
+     > index2：指向字段描述符CONSTANT_NameAndType_info的索引项
+     
+     **CONSTANT_Methodref_info**型常量结构	
+     
+     | 类型 | 名称   | 数量 |
+     | ---- | ------ | ---- |
+     | u1   | tag    | 1    |
+     | u2   | index1 | 1    |
+     | u2   | index2 | 1    |
+     
+     > tag：标志位
+     >
+     > index1：指向声明方法描述符CONSTANT_Class_info的索引项
+     >
+     > index2：指向名称及类型描述符CONSTANT_NameAndType_info的索引项
+     
+     **CONSTANT_InterfaceMethodref_info**型常量结构：
+     
+     | 类型 | 名称   | 数量 |
+     | ---- | ------ | ---- |
+     | u1   | tag    | 1    |
+     | u2   | index1 | 1    |
+     | u2   | index2 | 1    |
+     
+     >tag：标志位
+     >
+     >index1：指向声明方法的接口描述符CONSTANT_Class_info的索引项
+     >
+     >index2：指向名称及类型描述符CONSTANT_NameAndType_info的索引项
+     
+     **CONSTANT_NameAndType_info**型常量结构：
+     
+     | 类型 | 名称   | 数量 |
+     | ---- | ------ | ---- |
+     | u1   | tag    | 1    |
+     | u2   | index1 | 1    |
+     | u2   | index2 | 1    |
+     
+     > tag：标志位
+     >
+     > index1：指向该字段或方法名称常量项的索引
+     >
+     > index2：指向该字段或方法描述符常量项的索引
+     
+     ==注意==：以上index1指代name_index；index2指代descriptor_index
+     
+     JDK1.7补充内容：
+     
+     **CONSTANT_MethodHandle_info**型常量结构
+     
+     | 类型 | 名称            | 数量 |
+     | ---- | --------------- | ---- |
+     | u1   | tag             | 1    |
+     | u1   | reference_kind  | 1    |
+     | u2   | reference_index | 1    |
+     
+     > tag：标志位
+     >
+     > reference_kind：值必须在1~9之间，它决定了方法句柄的类型。方法句柄类型的值表示方法句柄的字节码行为；
+     >
+     > reference_index：对常量池的有效索引
+     
+     **CONSTANT_MethodType_info**型常量结构：
+     
+     | 类型 | 名称             | 数量 |
+     | ---- | ---------------- | ---- |
+     | u1   | tag              | 1    |
+     | u2   | descriptor_index | 1    |
+     
+     > tag：标志位
+     >
+     > descriptor_index：值必须是对常量池的有效索引，常量池在该索引处的项必须是CONSTANT_Utf8_info结构，表示方法的描述符
+     
+     **CONSTANT_InvokeDynaamic_info**型常量结构：
+     
+     | 类型 | 名称                        | 数量 |
+     | ---- | --------------------------- | ---- |
+     | u1   | tag                         | 1    |
+     | u2   | bootstrap_method_attr_index | 1    |
+     | u2   | name_and_type_index         | 1    |
+     
+     > tag：标志位
+     >
+     > bootstrap_method_attr_index：值必须是对当前class文件中引导方法表示的bootstrap_method[]数组的有效索引；
+     >
+     > name_and_type_index：值必须是对当前常量池的有效索引，常量池在该索引处的索引项必须是CONSTANT_NameAndType_info结构，表示方法名和方法描述符
