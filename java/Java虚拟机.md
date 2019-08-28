@@ -10,11 +10,11 @@
    >
    > 方法区 method area；
    >
+   > 堆 heap；
+   >
    > 虚拟机栈 VM Stack；
    >
    > 本地方法栈 Native Method Stack；
-   >
-   > 堆 heap；
    >
    > 程序计数器 Program Couter Register;
    >
