@@ -657,3 +657,18 @@
      > bootstrap_method_attr_index：值必须是对当前class文件中引导方法表示的bootstrap_method[]数组的有效索引；
      >
      > name_and_type_index：值必须是对当前常量池的有效索引，常量池在该索引处的索引项必须是CONSTANT_NameAndType_info结构，表示方法名和方法描述符
+   
+   - 访问标志符 **access_flag** u2 两个字节共16位可供标识
+   
+     | 标志名称       | 标志值 | 含义                                                         |
+     | -------------- | ------ | ------------------------------------------------------------ |
+     | ACC_PUBLIC     | 0x0001 | 是否为public类型                                             |
+     | ACC_FINAL      | 0x0010 | 是否被申明为final，只有类可设置？                            |
+     | ACC_SUPER      | 0x0020 | 是否允许使用invokespecial字节码指令的新语义                  |
+     | ACC_INTERFACE  | 0x0200 | 标识这是一个接口                                             |
+     | ACC_ABSTRACT   | 0x0400 | 是否为abstract类型，对于接口和抽象类来说，此标志值为真，其他为假（真即为1，假为0） |
+     | ACC_SYNTHETIC  | 0x1000 | 标识这个类并非有用户代码产生                                 |
+     | ACC_ANNOTATION | 0x2000 | 标识这是一个注解                                             |
+     | ACC_ENUM       | 0x4000 | 标识这是一个枚举值                                           |
+   
+     对于一个普通类，其标志符只有ACC_PUBLIC和ACC_SUPER，所以其access_flag值为：0000 0000 0010 0001  即0x00 21   (16进制一位用4个二进制表示，2^4 = 16)
