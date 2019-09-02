@@ -64,12 +64,13 @@
 
    其他注解
 
-   | 注解                          | 作用                                                        |
-   | ----------------------------- | ----------------------------------------------------------- |
-   | @RequestMapping               | 与springMVC作用一致，设置path                               |
-   | @value("${poperties's name}") | 通过properties文件或者configuration文件中设置的property注入 |
-   | @PropertySource               | 通过文件路径手动加载配置文件                                |
-   | @ConfigurationProperties      |                                                             |
+   | 注解                          | 作用                                                         |
+   | ----------------------------- | ------------------------------------------------------------ |
+   | @RequestMapping               | 与springMVC作用一致，设置path                                |
+   | @value("${poperties's name}") | 通过properties文件或者configuration文件中设置的property注入  |
+   | @PropertySource               | 通过文件路径手动加载配置文件                                 |
+   | @ConfigurationProperties      | 允许通过前缀获取配置文件中的相关数据源信息（前缀在YAML文件中可以理解为父节点） |
+   | @profile                      | 通过properties文件中配置的不同prifile名启用不同的配置        |
 
    
 
@@ -467,10 +468,306 @@
    System.out.println(ymlTest.getDate()+" "+ymlTest.getTime()+" "+ymlTest.getHeart());
    ```
 
-   
+10. 多profile YAML文件
 
-   
+    > 可以通过在YAML配置文件中通过**spring.profile:value**的方式，指定多个特定profile的指定YAMML文档
 
-10. **关于Multi-profile YAML Documents暂未看明白24.7.3**
+    ```YAML
+    server:
+      address: 192.168.1.100
+    ---
+    spring:
+      profiles: development
+    server:
+      address: 127.0.0.1
+    ---
+    spring:
+      profiles: production & eu-central
+    server:
+      address: 192.168.1.120
+    ```
 
-进度：24.8
+    > 如上图，如果develement处于激活状态，则此时应用server.address为127.0.0.1；如果production和eu-central同时处于激活态，则应用server.addredd为192.168.1.120；
+    >
+    > **注意：**spring.profile中可以包含简单的profile名称，也可以包含一个profile表达式，其允许复杂的profile逻辑（什么是profile，见第25节，参考他人博客显示profile就是springboot对不同的环境或指令读取的不同的配置文件）；
+    >
+    > 在java代码中，可通过@profile("profile-name")来启用不同profile下配置的不同的配置文件（@profile注解只能组合@Configuration和@compinent注解使用）;
+    >
+    > spring.profile:支持通过！取反否定
+    >
+    > **YAML的缺点：**无法使用@PropertySource加载YAML文件，*.properties文件可以
+
+11. 类型安全的属性配置
+
+    > 即通过@Configuration(prefix="")来指定需要配置的属性在YAML文件中的属性前缀，此种方式注入属性无需在属性名上使用@Value注解，只需要将变量名于配置文件中相同即可;
+    >
+    > **注意：**get/set方法通常是必须的（map只要它们被初始化，就可以只要getter不需要setter，因为它们可以被binder修改）
+
+    ```java
+    @Component
+    @ConfigurationProperties(prefix = "test")
+    public class YMLTest {
+    
+        private String time;
+        private String date;
+        private String heart;
+    
+        public String getTime() {
+            return time;
+        }
+    
+        public void setTime(String time) {
+            this.time = time;
+        }
+    
+        public String getDate() {
+            return date;
+        }
+    
+        public void setDate(String date) {
+            this.date = date;
+        }
+    
+        public String getHeart() {
+            return heart;
+        }
+    
+        public void setHeart(String heart) {
+            this.heart = heart;
+        }
+    }
+    ```
+
+    ```YAML
+    #application.yml配置文件
+    test:
+        time: 20:37
+        date: 2019/8/13
+        heart: impatient
+    ```
+
+    > 关于@EnableConfigurationProperties，暂时未能理解，位置：24.8类型的安全配置
+
+    **应用第三方配置**
+
+    @ConfigurationProperties还可以在公共的@Bean方法上使用，以便于将属性绑定到第三方组件上
+
+    ##### **宽松绑定**
+
+    即通过@ConfigurationProperties绑定属性时，bean中的属性名与配置文件中的属性名不需要精确匹配，例如可将context-path绑定到contextPath、将PORT绑定到port
+
+    关于宽松绑定，针对属性名firstName,在配置文件中可用如下写法
+
+    | 属性       | 描述                                                   |
+    | ---------- | ------------------------------------------------------ |
+    | first-name | Kebab短横线命名风格，建议在.properties和.yml文件中使用 |
+    | firstName  | 驼峰式                                                 |
+    | first_name | 下划线表示法，.properties和.yml文件中使用              |
+    | FIRSTNAME  | 大写风格，使用系统环境变量时推荐使用                   |
+
+    注意：直接的prefix值必须是Kebab风格
+
+    各属性源的的宽松绑定规则
+
+    | 属性源          | 简单类型                                               | 列表集合类型                                                 |
+    | --------------- | ------------------------------------------------------ | ------------------------------------------------------------ |
+    | properties 文件 | 驼峰式、短横线式或下划线式                             | 标准列表语法使用 `[]` 或逗号分隔值                           |
+    | YAML 文件       | 驼峰式、短横线式或者下划线式                           | 标准 YAML 列表语法或者逗号分隔值                             |
+    | 环境变量        | 大写并且以下划线作为定界符，`_` 不能放在属性名之间使用 | 数字值两边使用下划线连接，例如 `MY_ACME_1_OTHER = my.acme[1].other` |
+    | 系统属性        | 驼峰式、短横线式或者下划线式                           | 标准列表语法使用 `[]` 或逗号分隔值                           |
+
+    当将属性绑定到Map中时，如果key包含出字符数字以及‘-’以外的其他字符时，需要通过[ ]来保留特殊字符，否则其他字符将被删除
+
+    ```YAML
+    test:
+        time: 20:37
+        date: 2019/8/13
+        heart: impatient
+        map:
+            "[/key1]": value1
+            "[key-2]": value2
+            /key3: value3
+            key-4: value4
+            \key\5: value5
+    ```
+
+    ```java
+    @Component
+    @ConfigurationProperties(prefix = "test")
+    public class YMLTest {
+    
+        private String time;
+        private String date;
+        private String heart;
+        private Map map;
+     	·····省略get/set方法   
+    }
+    /*测试方法中输出为：
+    /key1=value1
+    key-2=value2
+    key3=value3
+    key-4=value4
+    key5=value5
+    */
+    ```
+
+    **合并复杂类型**
+
+    即如果在配置文件中针对同一属性均做了配置（通过spring.profile指定配置的应用环境），注入时默认不会合并条目（即激活某一配置环境时，默认条目与指定环境下的配置条目不会发生合并）
+
+    ```yaml
+    #配置文件如下 application.yml
+    acme:
+        list:
+          - name: my name
+            description: my Description
+    ---
+    spring:
+      profiles: dev
+      acme:
+        list:
+          - name: my another name
+    ```
+
+    在使用默认配置的情况下注入list
+
+    ```java
+    public class MyPojo {
+    
+        private String name;
+        private String description;
+     	//此处······省略get/set
+    }
+    /*实现类*/
+    @Component
+    @ConfigurationProperties(prefix = "acme")
+    public class YMLTest01 {
+        private List<MyPojo> list;
+    
+        public List<MyPojo> getList() {
+            return list;
+        }
+    
+        public void setList(List<MyPojo> list) {
+            this.list = list;
+        }
+    
+    }
+    /*测试类*/
+    @RunWith(SpringRunner.class)
+    @SpringBootTest
+    public class DemoApplicationTests{
+        
+        @Autowired
+    	private YMLTest01 ymlTest01;
+        
+        for (MyPojo temp:ymlTest01.getList()){
+    			System.out.println(temp.getName()+" "+temp.getDescription());
+    		}
+    }
+    /*测试类中输出该list：
+    my name my Description
+    */
+    ```
+
+    若配置了环境dev，并激活dev
+
+    ```YAML
+    acme:
+        list:  #这同样也是yaml中list的写法
+          - name: my name
+            description: my Description
+    ---
+    spring:
+      profiles:
+        active: dev
+    ---
+    spring:
+      profiles: dev
+    acme:
+        list:
+          - name: my another name
+    ```
+
+    ```java
+    /*bean类与测试类同上，结果输出为：
+    my another name null
+    */
+    ```
+
+    即默认的配置与新激活的dev环境配置中配置的list并不会合并注入
+
+    综上：多个配置文件中配置同一个list，优先级最高的将被使用
+
+    **但是**，对于map，则可以从多个数据源中取得数据并绑定，而对于相同Key的元素，则优先级最高的将被使用：
+
+    ```yaml
+    acme:
+        list:
+          - name: my name
+            description: my Description
+        map:
+          key1:
+            name: myname1
+            description: my description1
+    ---
+    spring:
+      profiles:
+        active: #dev    激活配置项
+    ---
+    spring:
+      profiles: dev
+    acme:
+        list:
+          - name: my another name
+        map:
+          key1:
+            name: my name1
+          key2:
+            name: my name2
+            description: my description2
+    ```
+
+    ```java
+    /*测试类*/
+    @Component
+    @ConfigurationProperties(prefix = "acme")
+    public class YMLTest02 {
+    
+        private Map<String,MyPojo> map;
+    
+        public Map<String, MyPojo> getMap() {
+            return map;
+        }
+    
+        public void setMap(Map<String, MyPojo> map) {
+            this.map = map;
+        }
+    }
+    
+    @RunWith(SpringRunner.class)
+    @SpringBootTest
+    public class DemoApplicationTests{
+        
+        @Autowired
+    	private YMLTest02 ymlTest02;
+        
+        for (String temp:ymlTest02.getMap().keySet()){
+    			MyPojo myPojo = ymlTest02.getMap().get(temp);
+    			System.out.println(temp+":"+myPojo.getName()+" "+myPojo.getDescription());
+    		}
+    }
+    /*当dev未激活时，其输出内容为：
+    key1 myname1 my description1
+    当dev激活后，输出为：
+    key1:my name1 my description1
+    key2:my name2 my description2  
+    可见虽然dev被激活，但key1对于的value值仍为默认配置文件中的key1，dev下的key1被覆盖了
+    */
+    ```
+
+    关于属性转换，暂时未能理解，章节24.8.4
+
+    **@configurationProperties验证**
+
+    > 通过将@validated直接在配置类上使用，并在需要验证的属性上设置约束注解（验证用,例如@NotNull，@NotEmpty，@Valid）
