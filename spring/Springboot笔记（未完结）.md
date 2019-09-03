@@ -771,3 +771,31 @@
     **@configurationProperties验证**
 
     > 通过将@validated直接在配置类上使用，并在需要验证的属性上设置约束注解（验证用,例如@NotNull，@NotEmpty，@Valid）
+
+12. Profile
+
+    > spring profile提供了一种配置部分隔离，并在指定环境中可用的方法。可以使用@Profile来注解任何@Component或者@Configuration来指定何时加载它（即将@Profile使用在@Component和@Configuration是用来指定这类配置文件可使用的环境，可见@Component和@Configuration属于配置类！！！），如果将@Profile使用在实现类上，则可以实现获取该实现类时的根据当前环境动态注入相应的实现类;
+
+    环境在配置文件中的表现就是：
+
+    > application.yml：全局配置
+    >
+    > application-dev.yml：生产环境配置
+    >
+    > application-prod.yml：开发环境配置
+    >
+    > application-test.yml：测试环境配置
+
+    Profile的激活
+
+    > 可以使用spring.profiles.active=dev····通过application.properties/application.yml来指定激活的配置文件，并通过命令行来替换修改；
+    >
+    > 此外，也可以通过Spring.prifiles.include属性无条件的激活配置文件（在指定配置文件中配置该属性，例如在prod中配置Spring.prifiles.include：prodbd，则只有prod被激活，他们均会被激活）；
+    >
+    > 还可以在SpringApplication入口处通过SpringApplication.setAddtionalProfiles(···)来设置激活profile
+
+    关于特定的profile文件
+
+    > 特定是profile文件，即除application.properties文件外，通过application-{profile}.properties命名规范命名的特定profile属性文件，若没有显示的激活特定profile，将加载application-default.properties配置文件
+    >
+    > **注意：**特定的profile和通过@ConfigurationProperties引用的文件被当做文件并加载
